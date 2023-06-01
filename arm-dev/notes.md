@@ -40,7 +40,7 @@ Cleans up the nix store.
 Useful if the guest has filled its drive contents.
 May make `nix-shell` slower on next run to repopulate its environment.
 - `just arm-dev-reset`
-**Desctructively** clears the VM contents.
+**Destructively** clears the VM contents.
 - `just arm-dev-ssh`
 Connect to the guest via SSH.
 Text interfaces are currently recommended due to the low performance of the GUI.
