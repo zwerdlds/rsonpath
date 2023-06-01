@@ -1,0 +1,36 @@
+#! /bin/sh
+
+
+CDIR=$(dirname "$0")
+CORE_COUNT=$(grep -c ^processor /proc/cpuinfo)
+
+#    -display sdl,gl=on,show-cursor=on \
+
+qemu-system-aarch64 \
+ -nographic \
+    -name armdev-guest,process=armdev-guest \
+    -machine virt,gic-version=max,usb=on \
+    -accel tcg,thread=multi \
+    -cpu max \
+    -smp ${CORE_COUNT} \
+    -m 8G \
+    -bios "${CDIR}/resources/uboot.bin" \
+    -device virtio-rng-pci,rng=rng0 -object rng-random,filename=/dev/urandom,id=rng0 \
+    -device ich9-ahci,id=ahci \
+    -device virtio-gpu-pci \
+    \
+    -device usb-ehci,id=ehci \
+    -device usb-kbd \
+    -device usb-mouse \
+    \
+    -device virtio-net-pci,netdev=net0 \
+    -netdev user,id=net0,hostfwd=tcp::5022-:22 \
+    \
+    -drive if=none,file="${CDIR}/aarch-linux-sd-image.qcow2",format=qcow2,id=disk0 \
+    -device ide-hd,drive=disk0,bus=ahci.0 \
+    \
+    -fsdev local,path="${CDIR}/../",security_model=none,id=disk1 \
+    -device virtio-9p-pci,fsdev=disk1,mount_tag=rsonpath \
+    \
+    -fsdev local,path="${CDIR}/config",security_model=mapped-xattr,id=disk2 \
+    -device virtio-9p-pci,fsdev=disk2,mount_tag=nixconfig

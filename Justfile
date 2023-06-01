@@ -30,6 +30,44 @@ checkout-benchmarks:
     git submodule init
     git submodule update
 
+# Shutdown the running ARM64 Development VM
+arm-dev-shutdown:
+    just arm-dev-ssh -t \"sudo sh -c \'shutdown now\'\"
+
+# Kill the running ARM64 Development VM
+arm-dev-kill:
+    killall armdev-guest
+
+# Kill and clean the ARM64 Development VM
+arm-dev-reset:
+    just arm-dev-kill || true ;
+    make -C ./arm-dev clean-image
+
+# Setup and then run the ARM64 Development VM
+arm-dev-init:
+    make -C ./arm-dev
+    ./arm-dev/start-vm
+
+# SSH to the running ARM64 Development VM
+arm-dev-ssh *ARGS:
+    ssh armdev@localhost -p 5022 {{ARGS}}
+
+# SSH to and update the ARM64 Development VM
+arm-dev-update:
+    just arm-dev-ssh -t \"sudo sh -c \'nixos-rebuild switch\'\"
+
+
+# SSH to and update the ARM64 Development VM
+arm-dev-tidy:
+    just arm-dev-ssh -t \"sudo sh -c \'\
+        nix-env --delete-generations +1 ; \
+        nix-store --gc ; \
+    \'\"
+
+# Run the ARM64 Development VM
+arm-dev:
+    ./arm-dev/start-vm
+
 # === BUILD ===
 
 alias b := build-bin

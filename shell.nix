@@ -13,6 +13,7 @@ let
     sha256 = "9FNIqrxDZgSliGGN2XJJSvcDYmQbgOANaZA4UWnTdg4=";
   }) {};
 in stable.mkShell rec {
+  allowUnsupportedSystem = true;
   buildInputs =
     (with stable; [
       rustup
@@ -31,6 +32,9 @@ in stable.mkShell rec {
       rust-analyzer
       cargo-hack
       cargo-watch
+      qemu_full
+      wget
+      gnumake
     ]) ++ (with unstable; [
       just
     ]);
