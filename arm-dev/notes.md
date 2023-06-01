@@ -31,7 +31,6 @@ Gracefully shuts the guest.
 - `just arm-dev-kill`
 Kills the guest VM ungracefully via `killall armdev-guest`, on the host.
 Useful if the device is otherwise unkillable, but `just arm-dev-shutdown` should probably be preferred.
-(This could be made more unique or use a PID file)
 - `just arm-dev-update`
 Once the guest is built and running, changes to its configuration can be applied with this command.
 Useful to avoid long from-scratch image rebuilds while making changes to the machine config.
@@ -61,7 +60,7 @@ These changes would require an `...-update` to then apply but should not require
 
 ### A single user, `armdev` 
 - is in `wheel`. 
-- has no password.
+- has a blank password.
 - will auto-login in both GUI and serial on boot.
 - **will have user home contents be destroyed on a rebuild**.
 
@@ -86,3 +85,14 @@ Currently the image creation process requires host root to mount and modify the 
 Should reduce build times, but permissions and host state may introduce complexity.
 
 ### Add `direnv` support
+This would eliminate `nix-shell` needing to be explicitly run in the project directory.
+
+### Breakout UID
+Permission issues are bound to happen if the user's host UID is not 1000, which is what the guest configures the `armdev` user with.
+This could be broken out into a separate `.nix` file and ignored by git to enable a bit more portability for users with alternative setups.
+
+### Simplify `just arm-dev-ssh`
+`cd`ing to the project root and running `nix-shell` can probably be added to the command.
+
+### Ensure Correct SIGKILL target
+The `just arm-dev-kill` command could be made more unique or use a PID file.
