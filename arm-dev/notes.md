@@ -14,9 +14,8 @@ Typical development usage implies the following flow:
 2. After setup completes, start the guest with `just arm-dev`.
 3. Connect to the guest with `just arm-dev-ssh`.
 4. `cd /rsonpath && nix-shell`
-5. 
-6. Do `aarch64`-type things.
-7. When finished with the guest, use `just arm-dev-shutdown`.
+5. Do `aarch64`-type things.
+6. When finished with the guest, use `just arm-dev-shutdown`.
 
 ## Commands
 The most common uses of the VM have `just` commands which can be run from the project root:
