@@ -11,7 +11,7 @@ resources/aarch-linux-sd-image.img.zst :
 		https://hydra.nixos.org/job/nixos/release-22.11/nixos.sd_image.aarch64-linux/latest/download-by-type/file/sd-image
 
 resources/uboot.bin :
-	nix build nixpkgs#pkgsCross.aarch64-multiplatform.ubootQemuAarch64
+	nix build --extra-experimental-features nix-command nixpkgs#pkgsCross.aarch64-multiplatform.ubootQemuAarch64
 	cp result/u-boot.bin resources/uboot.bin
 	rm result
 	chmod u+w uboot.bin
