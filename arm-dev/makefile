@@ -12,10 +12,10 @@ resources/aarch-linux-sd-image.img.zst :
 
 resources/uboot.bin :
 	nix build --extra-experimental-features nix-command nixpkgs#pkgsCross.aarch64-multiplatform.ubootQemuAarch64
-	mkdir resources
+	mkdir resources || true ;
 	cp result/u-boot.bin resources/uboot.bin
 	rm result
-	chmod u+w uboot.bin
+	chmod u+w resources/uboot.bin
 
 aarch-linux-sd-image.qcow2 : resources/uboot.bin resources/aarch-linux-sd-image.img.zst $(INIT) $(CONFIG)
 	unzstd resources/aarch-linux-sd-image.img.zst
