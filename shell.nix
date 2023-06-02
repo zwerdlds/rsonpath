@@ -35,6 +35,7 @@ in stable.mkShell rec {
       qemu_full
       wget
       gnumake
+      zstd
     ]) ++ (with unstable; [
       just
     ]);
