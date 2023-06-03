@@ -20,7 +20,7 @@ use crate::engine::tail_skipping::TailSkip;
 use crate::engine::{Engine, Input};
 use crate::query::automaton::{Automaton, State};
 use crate::query::error::CompilerError;
-use crate::query::{JsonPathQuery, Label, NonNegativeArrayIndex};
+use crate::query::{JsonPathQuery, JsonString, NonNegativeArrayIndex};
 use crate::result::QueryResult;
 use crate::BLOCK_SIZE;
 use crate::{
@@ -110,10 +110,7 @@ struct Executor<'q, 'b, I: Input> {
     has_any_array_item_transition_to_accepting: bool,
 }
 
-fn query_executor<'q, 'b, I: Input>(
-    automaton: &'b Automaton<'q>,
-    bytes: &'b I,
-) -> Executor<'q, 'b, I> {
+fn query_executor<'q, 'b, I: Input>(automaton: &'b Automaton<'q>, bytes: &'b I) -> Executor<'q, 'b, I> {
     Executor {
         depth: Depth::ZERO,
         state: automaton.initial_state(),
@@ -214,8 +211,8 @@ impl<'q, 'b, I: Input> Executor<'q, 'b, I> {
             for &(label, target) in self.automaton[self.state].transitions() {
                 match label {
                     TransitionLabel::ArrayIndex(_) => {}
-                    TransitionLabel::ObjectMember(label) => {
-                        if self.automaton.is_accepting(target) && self.is_match(idx, label)? {
+                    TransitionLabel::ObjectMember(member_name) => {
+                        if self.automaton.is_accepting(target) && self.is_match(idx, member_name)? {
                             result.report(idx);
                             any_matched = true;
                             break;
@@ -227,7 +224,7 @@ impl<'q, 'b, I: Input> Executor<'q, 'b, I> {
             if !any_matched && self.automaton.is_accepting(fallback_state) {
                 result.report(idx);
             }
-            #[cfg(feature = "unique-labels")]
+            #[cfg(feature = "unique-members")]
             {
                 let is_next_closing = self.next_event.map_or(false, |s| s.is_closing());
                 if any_matched && !is_next_closing && self.automaton.is_unitary(self.state) {
@@ -257,9 +254,7 @@ impl<'q, 'b, I: Input> Executor<'q, 'b, I> {
 
         let is_next_opening = self.next_event.map_or(false, |s| s.is_opening());
 
-        let is_fallback_accepting = self
-            .automaton
-            .is_accepting(self.automaton[self.state].fallback_state());
+        let is_fallback_accepting = self.automaton.is_accepting(self.automaton[self.state].fallback_state());
 
         if !is_next_opening && self.is_list && is_fallback_accepting {
             debug!("Accepting on comma.");
@@ -315,9 +310,9 @@ impl<'q, 'b, I: Input> Executor<'q, 'b, I> {
                         break;
                     }
                 }
-                TransitionLabel::ObjectMember(label) => {
+                TransitionLabel::ObjectMember(member_name) => {
                     if let Some(colon_idx) = colon_idx {
-                        if self.is_match(colon_idx, label)? {
+                        if self.is_match(colon_idx, member_name)? {
                             any_matched = true;
                             self.transition_to(target, bracket_type);
                             if self.automaton.is_accepting(target) {
@@ -351,11 +346,9 @@ impl<'q, 'b, I: Input> Executor<'q, 'b, I> {
 
         if bracket_type == BracketType::Square {
             self.is_list = true;
-            self.has_any_array_item_transition =
-                self.automaton.has_any_array_item_transition(self.state);
-            self.has_any_array_item_transition_to_accepting = self
-                .automaton
-                .has_any_array_item_transition_to_accepting(self.state);
+            self.has_any_array_item_transition = self.automaton.has_any_array_item_transition(self.state);
+            self.has_any_array_item_transition_to_accepting =
+                self.automaton.has_any_array_item_transition_to_accepting(self.state);
 
             let fallback = self.automaton[self.state].fallback_state();
             let is_fallback_accepting = self.automaton.is_accepting(fallback);
@@ -367,19 +360,15 @@ impl<'q, 'b, I: Input> Executor<'q, 'b, I> {
                 self.array_count = NonNegativeArrayIndex::ZERO;
                 debug!("Initialized array count to {}", self.array_count);
 
-                let wants_first_item = is_fallback_accepting
-                    || self
-                        .automaton
-                        .has_first_array_index_transition_to_accepting(self.state);
+                let wants_first_item =
+                    is_fallback_accepting || self.automaton.has_first_array_index_transition_to_accepting(self.state);
 
                 if wants_first_item {
                     self.next_event = classifier.next();
 
                     match self.next_event {
                         Some(Structural::Closing(_, close_idx)) => {
-                            if let Some((next_idx, _)) =
-                                self.bytes.seek_non_whitespace_forward(idx + 1)
-                            {
+                            if let Some((next_idx, _)) = self.bytes.seek_non_whitespace_forward(idx + 1) {
                                 if next_idx < close_idx {
                                     result.report(next_idx);
                                 }
@@ -411,18 +400,14 @@ impl<'q, 'b, I: Input> Executor<'q, 'b, I> {
         Ok(())
     }
 
-    fn handle_closing<Q, S>(
-        &mut self,
-        classifier: &mut Classifier!(),
-        idx: usize,
-    ) -> Result<(), EngineError>
+    fn handle_closing<Q, S>(&mut self, classifier: &mut Classifier!(), idx: usize) -> Result<(), EngineError>
     where
         Q: QuoteClassifiedIterator<'b, I, BLOCK_SIZE>,
         S: StructuralIterator<'b, I, Q, BLOCK_SIZE>,
     {
         debug!("Closing, decreasing depth and popping stack.");
 
-        #[cfg(feature = "unique-labels")]
+        #[cfg(feature = "unique-members")]
         {
             self.depth
                 .decrement()
@@ -448,7 +433,7 @@ impl<'q, 'b, I: Input> Executor<'q, 'b, I> {
             }
         }
 
-        #[cfg(not(feature = "unique-labels"))]
+        #[cfg(not(feature = "unique-members"))]
         {
             self.depth
                 .decrement()
@@ -467,9 +452,7 @@ impl<'q, 'b, I: Input> Executor<'q, 'b, I> {
         }
 
         if self.is_list
-            && (self
-                .automaton
-                .is_accepting(self.automaton[self.state].fallback_state())
+            && (self.automaton.is_accepting(self.automaton[self.state].fallback_state())
                 || self.has_any_array_item_transition)
         {
             classifier.turn_commas_on(idx);
@@ -505,8 +488,7 @@ impl<'q, 'b, I: Input> Executor<'q, 'b, I> {
                 is_list: self.is_list,
                 array_count: self.array_count,
                 has_any_array_item_transition: self.has_any_array_item_transition,
-                has_any_array_item_transition_to_accepting: self
-                    .has_any_array_item_transition_to_accepting,
+                has_any_array_item_transition_to_accepting: self.has_any_array_item_transition_to_accepting,
             });
             self.state = target;
         }
@@ -522,12 +504,12 @@ impl<'q, 'b, I: Input> Executor<'q, 'b, I> {
         }
     }
 
-    fn is_match(&self, idx: usize, label: &Label) -> Result<bool, EngineError> {
-        let len = label.bytes_with_quotes().len();
+    fn is_match(&self, idx: usize, member_name: &JsonString) -> Result<bool, EngineError> {
+        let len = member_name.bytes_with_quotes().len();
 
         let closing_quote_idx = match self.bytes.seek_backward(idx - 1, b'"') {
             Some(x) => x,
-            None => return Err(EngineError::MalformedLabelQuotes(idx - 1)),
+            None => return Err(EngineError::MalformedStringQuotes(idx - 1)),
         };
 
         if closing_quote_idx + 1 < len {
@@ -537,7 +519,7 @@ impl<'q, 'b, I: Input> Executor<'q, 'b, I> {
         let start_idx = closing_quote_idx + 1 - len;
         Ok(self
             .bytes
-            .is_label_match(start_idx, closing_quote_idx + 1, label))
+            .is_member_match(start_idx, closing_quote_idx + 1, member_name))
     }
 
     fn verify_subtree_closed(&self) -> Result<(), EngineError> {
@@ -548,7 +530,7 @@ impl<'q, 'b, I: Input> Executor<'q, 'b, I> {
         }
     }
 
-    #[cfg(feature = "unique-labels")]
+    #[cfg(feature = "unique-members")]
     fn current_node_bracket_type(&self) -> BracketType {
         if self.is_list {
             BracketType::Square
@@ -575,9 +557,7 @@ struct SmallStack {
 
 impl SmallStack {
     fn new() -> Self {
-        Self {
-            contents: smallvec![],
-        }
+        Self { contents: smallvec![] }
     }
 
     #[inline]

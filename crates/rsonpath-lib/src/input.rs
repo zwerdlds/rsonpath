@@ -45,7 +45,7 @@ pub mod owned;
 pub use borrowed::BorrowedBytes;
 pub use owned::OwnedBytes;
 
-use crate::query::Label;
+use crate::query::JsonString;
 use std::ops::Deref;
 
 /// Shorthand for the associated [`InputBlock`] type for given
@@ -53,8 +53,7 @@ use std::ops::Deref;
 ///
 /// Typing `IBlock<'a, I, N>` is a bit more ergonomic than
 /// `<<I as Input>::BlockIterator<'a, N> as InputBlockIterator<'a, N>>::Block`.
-pub type IBlock<'a, I, const N: usize> =
-    <<I as Input>::BlockIterator<'a, N> as InputBlockIterator<'a, N>>::Block;
+pub type IBlock<'a, I, const N: usize> = <<I as Input>::BlockIterator<'a, N> as InputBlockIterator<'a, N>>::Block;
 
 /// Global padding guarantee for all [`Input`] implementations.
 /// Iterating over blocks of at most this size is guaranteed
@@ -101,27 +100,27 @@ pub trait Input: Sized {
     #[must_use]
     fn seek_non_whitespace_backward(&self, from: usize) -> Option<(usize, u8)>;
 
-    /// Search the input for the first occurrence of `label`
+    /// Search the input for the first occurrence of member name `member`
     /// (comparing bitwise, including double quotes delimiters)
     /// starting from `from`. Returns the index of the first occurrence,
     /// or `None` if no occurrence was found.
     ///
     /// This will also check if the leading double quote is not
     /// escaped by a backslash character, but will ignore any other
-    /// structural properties of the input. In particular, the label
+    /// structural properties of the input. In particular, the member
     /// might be found at an arbitrary depth.
     #[cfg(feature = "head-skip")]
     #[must_use]
-    fn find_label(&self, from: usize, label: &Label) -> Option<usize>;
+    fn find_member(&self, from: usize, member: &JsonString) -> Option<usize>;
 
     /// Decide whether the slice of input between `from` (inclusive)
-    /// and `to` (exclusive) matches the `label` (comparing bitwise,
+    /// and `to` (exclusive) matches the `member` (comparing bitwise,
     /// including double quotes delimiters).
     ///
     /// This will also check if the leading double quote is not
     /// escaped by a backslash character.
     #[must_use]
-    fn is_label_match(&self, from: usize, to: usize, label: &Label) -> bool;
+    fn is_member_match(&self, from: usize, to: usize, member: &JsonString) -> bool;
 }
 
 /// An iterator over blocks of input of size `N`.

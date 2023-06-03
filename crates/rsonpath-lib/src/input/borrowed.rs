@@ -61,10 +61,7 @@ impl<'a, const N: usize> BorrowedBytesBlockIterator<'a, N> {
     #[must_use]
     #[inline(always)]
     pub(super) fn new(bytes: &'a [u8]) -> Self {
-        Self {
-            input: bytes,
-            idx: 0,
-        }
+        Self { input: bytes, idx: 0 }
     }
 }
 
@@ -128,10 +125,10 @@ impl<'a> Input for BorrowedBytes<'a> {
 
     #[inline]
     #[cfg(feature = "head-skip")]
-    fn find_label(&self, from: usize, label: &Label) -> Option<usize> {
+    fn find_member(&self, from: usize, member_name: &JsonString) -> Option<usize> {
         use memchr::memmem;
 
-        let finder = memmem::Finder::new(label.bytes_with_quotes());
+        let finder = memmem::Finder::new(member_name.bytes_with_quotes());
         let mut idx = from;
 
         loop {
@@ -141,7 +138,7 @@ impl<'a> Input for BorrowedBytes<'a> {
                     if self.bytes[starting_quote_idx - 1] != b'\\' {
                         return Some(starting_quote_idx);
                     } else {
-                        idx = starting_quote_idx + label.bytes_with_quotes().len() + 1;
+                        idx = starting_quote_idx + member_name.bytes_with_quotes().len() + 1;
                     }
                 }
                 None => return None,
@@ -150,9 +147,9 @@ impl<'a> Input for BorrowedBytes<'a> {
     }
 
     #[inline]
-    fn is_label_match(&self, from: usize, to: usize, label: &Label) -> bool {
+    fn is_member_match(&self, from: usize, to: usize, member_name: &JsonString) -> bool {
         let slice = &self.bytes[from..to];
-        label.bytes_with_quotes() == slice && (from == 0 || self.bytes[from - 1] != b'\\')
+        member_name.bytes_with_quotes() == slice && (from == 0 || self.bytes[from - 1] != b'\\')
     }
 }
 
