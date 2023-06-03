@@ -10,12 +10,13 @@ Guest system-level modifications should be contained in the system's nixos defin
 
 ## Usage
 Typical development usage implies the following flow:
-1. On first setup, run `just arm-dev-init`.
-2. After setup completes, start the guest with `just arm-dev`.
-3. Connect to the guest with `just arm-dev-ssh`.
-4. `cd /rsonpath && nix-shell`
-5. Do `aarch64`-type things.
-6. When finished with the guest, use `just arm-dev-shutdown`.
+1. Have `nix-shell` installed and have it load the `shell.nix` at the root of the project.
+2. On first setup, run `just arm-dev-init`.
+3. After setup completes, start the guest with `just arm-dev`.
+4. Connect to the guest with `just arm-dev-ssh`.
+5. `cd /rsonpath && nix-shell`
+6. Do `aarch64`-type things.
+7. When finished with the guest, use `just arm-dev-shutdown`.
 
 ## Commands
 The most common uses of the VM have `just` commands which can be run from the project root:
