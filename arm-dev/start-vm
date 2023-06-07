@@ -7,13 +7,13 @@ CORE_COUNT=$(grep -c ^processor /proc/cpuinfo)
 #    -display sdl,gl=on,show-cursor=on \
 
 qemu-system-aarch64 \
- -nographic \
+    -nographic \
     -name armdev-guest,process=armdev-guest \
     -machine virt,gic-version=max,usb=on \
     -accel tcg,thread=multi \
     -cpu max \
     -smp ${CORE_COUNT} \
-    -m 8G \
+    -m 16G \
     -bios "${CDIR}/resources/uboot.bin" \
     -device virtio-rng-pci,rng=rng0 -object rng-random,filename=/dev/urandom,id=rng0 \
     -device ich9-ahci,id=ahci \
@@ -26,8 +26,8 @@ qemu-system-aarch64 \
     -device virtio-net-pci,netdev=net0 \
     -netdev user,id=net0,hostfwd=tcp::5022-:22 \
     \
-    -drive if=none,file="${CDIR}/aarch-linux-sd-image.qcow2",format=qcow2,id=disk0 \
-    -device ide-hd,drive=disk0,bus=ahci.0 \
+    -drive if=none,file="${CDIR}/aarch-linux-sd-image.img",format=raw,id=disk0 \
+    -device virtio-blk,drive=disk0 \
     \
     -fsdev local,path="${CDIR}/../",security_model=none,id=disk1 \
     -device virtio-9p-pci,fsdev=disk1,mount_tag=rsonpath \

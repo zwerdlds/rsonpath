@@ -14,6 +14,7 @@
   config.environment.systemPackages = with pkgs; [
     wget
     direnv
+    sysbench
   ];
 
   # Start an SSH daemon at boot.
@@ -44,16 +45,6 @@
   # Autologin
   config.services.getty.autologinUser = "armdev";
 
-  # GUI
-  config.services.xserver = {
-    enable = true;
-    desktopManager.gnome.enable = true;
-    displayManager = {
-      gdm.enable = true;
-      autoLogin.user = "armdev";
-    };
-  };
-
   # Define the single user for this system
   config.users.users.armdev = {
     isNormalUser = true;
@@ -69,7 +60,7 @@
 
   config.fileSystems = {
     "/" = {
-      device = "/dev/sda2";
+      device = "/dev/vda2";
       fsType = "ext4";
     };
     "/rsonpath" = {
